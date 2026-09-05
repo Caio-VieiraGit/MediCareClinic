@@ -1,0 +1,43 @@
+const { DataTypes } = require('sequelize')
+const sequelize = require('../config/database')
+
+const Profissional = sequelize.define('Profissional', {
+  nome: {
+    type: DataTypes.STRING,
+    allowNull: false,
+  },
+  email: {
+    type: DataTypes.STRING,
+    allowNull: true,
+    unique: true,
+    validate: {
+      isEmail: true
+    },
+  },
+  crm: {
+    type: DataTypes.STRING,
+    allowNull: true,
+    unique: true
+  },
+  especialidade: {
+    type: DataTypes.STRING,
+    allowNull: false
+  },
+  perfil: {
+    type: DataTypes.ENUM('admin', 'medico', 'recepcionista'),
+  },
+  status: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: true
+  },
+  senha: {
+    type: DataTypes.STRING,
+    allowNull: false
+  }
+},
+{
+  tableName: 'Profissionals', // <-- força o nome certo
+  timestamps: true
+});
+
+module.exports = Profissional
