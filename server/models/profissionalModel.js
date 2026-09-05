@@ -21,7 +21,7 @@ const Profissional = sequelize.define('Profissional', {
   },
   especialidade: {
     type: DataTypes.STRING,
-    allowNull: false
+    allowNull: true
   },
   perfil: {
     type: DataTypes.ENUM('admin', 'medico', 'recepcionista'),

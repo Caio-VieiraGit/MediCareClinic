@@ -7,6 +7,7 @@ import Consultas from '@/views/Consultas.vue'
 import Pacientes from '@/views/Pacientes.vue'
 import Medicos from '@/views/Medicos.vue'
 import Atendimento from '@/views/Atendimento.vue'
+import Relatorios from '@/views/Relatorios.vue'
 
 const routes = [
   {
@@ -53,6 +54,12 @@ const routes = [
     path: '/medicos',
     name: 'Medicos',
     component: Medicos,
+    meta: {requiresAuth: true, requiresAdmin: true}
+  },
+  {
+    path: '/relatorios',
+    name: 'Relatorios',
+    component: Relatorios,
     meta: {requiresAuth: true, requiresAdmin: true}
   }
 ]

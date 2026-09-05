@@ -3,7 +3,7 @@
         <div class="brand">
             <div class="icon">+</div>
             <div>
-                <h2>Medicare</h2>
+                <h2>MediCare</h2>
                 <span>Clínica</span>
             </div>
         </div>
@@ -17,12 +17,13 @@
         </div>
 
         <nav class="menu">
-          <a 
+          <a
           v-for="item in rotasPermitidas"
           :key="item.name"
           href="#"
           class="item"
-          @click="$emit('navigate', item.path)">
+          :class="{ active: rotaAtual === item.path }"
+          @click.prevent="$emit('navigate', item.path)">
             {{ item.label }}
           </a>
         </nav>
@@ -36,6 +37,8 @@
 </template>
 <script setup>
   import { computed } from 'vue'
+  import { useRoute } from 'vue-router'
+
   const props = defineProps({
   userRole: {
     type: String,
@@ -49,6 +52,9 @@
   }
 })
 
+const route = useRoute()
+const rotaAtual = computed(() => route.name)
+
 const rotasPorCargo = {
     admin: [
         {name: 'dashboard', path: 'dashboard', label: 'Dashboard'},
@@ -56,7 +62,8 @@ const rotasPorCargo = {
          {name: 'atendimento', path: 'atendimento', label: 'Atendimento'},
         {name: 'consultas', path: 'consultas', label: 'Consultas'},
         {name: 'pacientes', path: 'pacientes', label: 'Pacientes'},
-        {name: 'medicos', path: 'medicos', label: 'Médicos'}    
+        {name: 'medicos', path: 'medicos', label: 'Médicos'},
+        {name: 'relatorios', path: 'relatorios', label: 'Relatórios'}
     ],
     medico: [
         {name: 'agenda', path: 'agenda', label: 'Agenda'},
@@ -74,74 +81,111 @@ const rotasPermitidas = computed(() => rotasPorCargo[props.userRole] || [])
 
 .sidebar {
     width: 240px;
-    background: #ffffff;
-    padding: 20px;
-    border-right: 1px solid #e2e2e2;
+    background: var(--surface);
+    padding: 24px 18px;
+    border-right: 1px solid var(--border);
     height: 100vh;
     display: flex;
     flex-direction: column;
+    font-family: var(--font-sans);
 }
 
 .brand {
     display: flex;
     align-items: center;
     gap: 10px;
-    margin-bottom: 30px;
+    margin-bottom: 32px;
+    padding: 0 6px;
 }
 
 .brand .icon {
-    background: #0a73ff;
+    background: var(--clay);
     color: #fff;
     width: 36px;
     height: 36px;
     display: flex;
     justify-content: center;
     align-items: center;
-    border-radius: 6px;
-    font-size: 24px;
+    border-radius: var(--radius-sm);
+    font-size: 22px;
+    line-height: 1;
+    flex-shrink: 0;
+}
+
+.brand h2 {
+    margin: 0;
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--ink);
+}
+
+.brand span {
+    font-size: 12px;
+    color: var(--ink-soft);
 }
 
 .user-box {
     display: flex;
     align-items: center;
     gap: 10px;
-    margin-bottom: 40px;
+    margin-bottom: 28px;
+    padding: 10px;
+    background: var(--surface-sunken);
+    border-radius: var(--radius-md);
 }
 
 .user-box .avatar {
-    background: #d8e3fc;
-    color: #003399;
-    width: 40px;
-    height: 40px;
+    background: var(--clay-soft);
+    color: var(--clay-strong);
+    width: 38px;
+    height: 38px;
     display: flex;
     justify-content: center;
     align-items: center;
     border-radius: 50%;
-    font-weight: bold;
+    font-weight: 700;
+    flex-shrink: 0;
 }
 
 .username {
-    font-weight: bold;
+    font-weight: 600;
+    color: var(--ink);
+    margin: 0;
+    font-size: 14px;
 }
 
 .role {
     font-size: 12px;
-    color: #666;
+    color: var(--ink-soft);
+    text-transform: capitalize;
+}
+
+.menu {
+    display: flex;
+    flex-direction: column;
 }
 
 .menu .item {
     display: block;
-    padding: 12px 10px;
-    border-radius: 8px;
-    color: #333;
+    padding: 11px 12px;
+    border-radius: var(--radius-sm);
+    color: var(--ink-soft);
     text-decoration: none;
-    margin-bottom: 8px;
+    margin-bottom: 4px;
+    font-size: 14px;
+    font-weight: 500;
+    transition: background-color 0.15s ease, color 0.15s ease;
 }
 
-.menu .item:hover,
+.menu .item:hover {
+    background: var(--surface-sunken);
+    color: var(--ink);
+}
+
 .menu .item.active {
-    background: #e9f0ff;
-    color: #0a73ff;
+    background: var(--clay-soft);
+    color: var(--clay-strong);
+    font-weight: 600;
 }
 
 .logout {
@@ -150,21 +194,29 @@ const rotasPermitidas = computed(() => rotasPorCargo[props.userRole] || [])
     gap: 8px;
     border: none;
     background: transparent;
-    padding: 12px 16px;
-    font-size: 16px;
-    color: #6b7280; /* cinza igual ao da sua imagem */
+    padding: 12px;
+    font-size: 14px;
+    font-weight: 500;
+    font-family: var(--font-sans);
+    color: var(--ink-soft);
     cursor: pointer;
     margin-top: auto;
+    border-radius: var(--radius-sm);
+    transition: background-color 0.15s ease;
 }
 
-
-.logout:hover{
-    background-color: #f3f4f6;
-    border-radius: 8px;
+.logout img {
+    width: 16px;
+    height: 16px;
+    opacity: 0.7;
 }
 
-.logout:hover span{
-    color: #e63946;
+.logout:hover {
+    background-color: var(--danger-soft);
+}
+
+.logout:hover span {
+    color: var(--danger);
 }
 
 </style>

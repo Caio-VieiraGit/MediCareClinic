@@ -22,6 +22,23 @@
     <input v-model="busca" type="text" placeholder="Buscar consulta..." />
   </div>
 
+  <div class="filtros-consulta">
+    <select v-model="filtroMedico">
+      <option value="">Todos os médicos</option>
+      <option v-for="medico in medicos" :key="medico.id" :value="medico.id">{{ medico.nome }}</option>
+    </select>
+    <select v-model="filtroStatus">
+      <option value="">Todos os status</option>
+      <option value="agendada">Agendada</option>
+      <option value="confirmada">Confirmada</option>
+      <option value="em_atendimento">Em atendimento</option>
+      <option value="realizada">Realizada</option>
+      <option value="cancelada">Cancelada</option>
+      <option value="faltou">Faltou</option>
+    </select>
+    <input v-model="filtroData" type="date" />
+  </div>
+
   <section class="consultas-container">
     <div class="consultas-list">
       <h3 class="section-title">Consultas</h3>
@@ -109,7 +126,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted, watch } from 'vue'
 import api from '@/services/api.js' 
 import { useStore } from 'vuex'
 import { useRouter } from 'vue-router'
@@ -119,6 +136,9 @@ const store = useStore()
 const router = useRouter()
 
 const busca = ref('')
+const filtroMedico = ref('')
+const filtroStatus = ref('')
+const filtroData = ref('')
 const consultaSelecionada = ref(null)
 const consultas = ref([])
 const mostrarModal = ref(false)
@@ -154,7 +174,13 @@ const formatarTipo = (tipo) => {
 
 const carregarConsultas = async () => {
   try {
-    const response = await api.get('/api/consultas')
+    const response = await api.get('/api/consultas', {
+      params: {
+        medicoId: filtroMedico.value || undefined,
+        status: filtroStatus.value || undefined,
+        data: filtroData.value || undefined,
+      }
+    })
     consultas.value = response.data.map(c => ({
       id: c.id,
       paciente: c.paciente?.nome || 'Paciente não informado',
@@ -204,6 +230,10 @@ const excluirConsulta = async () => {
 const consultasFiltradas = computed(() =>
   consultas.value.filter(c => c.paciente.toLowerCase().includes(busca.value.toLowerCase()))
 )
+
+watch([filtroMedico, filtroStatus, filtroData], () => {
+  carregarConsultas()
+})
 
 const abrirModal = () => { mostrarModal.value = true }
 const fecharModal = () => { mostrarModal.value = false }
@@ -401,6 +431,23 @@ body {
     margin: 20px 0;
     border: 1px solid #cfd8e3;
     border-radius: 8px;
+}
+
+.filtros-consulta {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+}
+
+.filtros-consulta select,
+.filtros-consulta input[type="date"] {
+    padding: 10px 12px;
+    border: 1px solid #cfd8e3;
+    border-radius: 8px;
+    font-size: 14px;
+    color: #333;
+    background: #fff;
 }
 
 .consultas-container {

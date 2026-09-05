@@ -7,7 +7,7 @@ const Atendimento = sequelize.define('Atendimento', {
     allowNull: false,
     unique: true,
     references: {
-      model: 'Consultas',
+      model: 'Consulta',
       key: 'id',
     },
   },

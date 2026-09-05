@@ -1,0 +1,60 @@
+/*
+  MediCare — sistema de design
+  Paleta calorosa/humana: base em tons de parchment/blush, com clay (terracota)
+  como cor de marca, sálvia para estados positivos e mel para estados de
+  espera. Pensada pra fugir do azul/cinza "hospital frio" do design anterior.
+*/
+
+:root {
+  /* Base */
+  --bg: #FAF4EF;              /* fundo geral do app — parchment quente, não branco/cinza */
+  --surface: #FFFFFF;         /* cards, inputs, modais */
+  --surface-sunken: #F3EAE2;  /* áreas rebaixadas (linhas alternadas, painéis internos) */
+
+  /* Texto */
+  --ink: #3A2A22;             /* texto principal — marrom quase-preto, não preto/azulado */
+  --ink-soft: #8A7566;        /* texto secundário, labels, legendas */
+  --ink-faint: #B7A99C;       /* placeholders, texto desabilitado */
+
+  /* Marca / ação primária */
+  --clay: #A8583E;            /* cor de marca — terracota fechado */
+  --clay-strong: #8A4632;     /* hover/active do botão primário */
+  --clay-soft: #F2DED2;       /* fundo suave (chips, hover leve, avatar) */
+
+  /* Estado positivo (confirmada / realizada) */
+  --sage: #6F8B5E;
+  --sage-strong: #57704A;
+  --sage-soft: #E4EBDD;
+
+  /* Estado de espera (agendada / pendente) */
+  --honey: #C98A34;
+  --honey-strong: #A66F27;
+  --honey-soft: #F6E8CE;
+
+  /* Estado negativo (cancelada / erro) */
+  --danger: #B3402E;
+  --danger-strong: #8F3223;
+  --danger-soft: #F4DCD5;
+
+  /* Estado neutro (faltou / inativo) */
+  --neutral: #8A7566;
+  --neutral-soft: #EBE1D8;
+
+  /* Bordas e linhas */
+  --border: #E7DACB;
+  --border-strong: #D8C6B3;
+
+  /* Sombra — tingida de ink, não preto puro */
+  --shadow-sm: 0 1px 2px rgba(58, 42, 34, 0.06);
+  --shadow-md: 0 4px 16px rgba(58, 42, 34, 0.10);
+  --shadow-lg: 0 12px 32px rgba(58, 42, 34, 0.14);
+
+  /* Raios — consistentes mas variam por papel do elemento */
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 22px;
+  --radius-pill: 999px;
+
+  /* Tipografia */
+  --font-sans: 'Figtree', -apple-system, BlinkMacSystemFont, sans-serif;
+}

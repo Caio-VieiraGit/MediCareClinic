@@ -1,4 +1,6 @@
 const Profissional = require('../models/profissionalModel')
+const { Consulta } = require('../models')
+const { Op } = require('sequelize')
 const bcrypt = require('bcrypt')
 
 // GET /profissionais
@@ -87,6 +89,19 @@ exports.deletar = async (req, res) => {
   try {
     const profissional = await Profissional.findByPk(req.params.id)
     if (!profissional) return res.status(404).json({ erro: 'Profissional não encontrado!' })
+
+    // RN10: não permite excluir se houver consultas futuras ativas vinculadas
+    const hoje = new Date().toISOString().split('T')[0]
+    const consultaFutura = await Consulta.findOne({
+      where: {
+        medicoId: profissional.id,
+        data_consulta: { [Op.gte]: hoje },
+        status: { [Op.notIn]: ['cancelada', 'faltou', 'realizada'] }
+      }
+    })
+    if (consultaFutura) {
+      return res.status(400).json({ erro: 'Não é possível excluir: existem consultas futuras vinculadas a este profissional.' })
+    }
 
     await profissional.destroy()
     res.sendStatus(200)

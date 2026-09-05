@@ -6,6 +6,9 @@ const rotasAuth = require('./routes/authRoutes')
 const rotasConsultas = require('./routes/consultaRoutes')
 const rotasProfissionais = require('./routes/profissionalRoutes')
 const rotasAtendimentos = require('./routes/atendimentoRoutes')
+const rotasRelatorios = require('./routes/relatorioRoutes')
+const authMiddleware = require('./middlewares/authMiddleware')
+const profissionalController = require('./controllers/profissionalController')
 
 const app = express()
 const sequelize = require('./config/database')
@@ -29,6 +32,11 @@ app.use('/api/auth', rotasAuth)
 app.use('/api/profissionais', rotasProfissionais)
 app.use('/api/atendimentos', rotasAtendimentos)
 app.use('/api/consultas', rotasConsultas)
+app.use('/api/relatorios', rotasRelatorios)
+
+// Alias no nível raiz — o documento da situação de aprendizagem pede GET /api/medicos
+// além de GET /api/profissionais/medicos (mantido por compatibilidade com o front atual)
+app.get('/api/medicos', authMiddleware, profissionalController.listarMedicos)
 
 
 

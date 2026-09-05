@@ -51,6 +51,24 @@
     <p><strong>Endereço:</strong> {{ pacienteDetalhes.endereco}}</p>
     <p><strong>CEP:</strong> {{ pacienteDetalhes.cep }}</p>
 
+    <h4 class="historico-titulo">Histórico de consultas</h4>
+    <p v-if="!pacienteDetalhes.Consulta || pacienteDetalhes.Consulta.length === 0" class="historico-vazio">
+      Nenhuma consulta registrada para este paciente.
+    </p>
+    <div v-else class="historico-lista">
+      <div v-for="consulta in pacienteDetalhes.Consulta" :key="consulta.id" class="historico-item">
+        <div class="historico-item-topo">
+          <span class="historico-data">{{ consulta.data_consulta }} às {{ consulta.hora_consulta }}</span>
+          <span class="historico-status" :class="`status-${consulta.status}`">{{ consulta.status }}</span>
+        </div>
+        <p class="historico-motivo">{{ consulta.tipo }} — {{ consulta.motivo || 'sem motivo informado' }}</p>
+        <div v-if="consulta.Atendimento" class="historico-atendimento">
+          <p><strong>Diagnóstico:</strong> {{ consulta.Atendimento.diagnostico || '—' }}</p>
+          <p><strong>Prescrição:</strong> {{ consulta.Atendimento.prescricao || '—' }}</p>
+        </div>
+      </div>
+    </div>
+
     <div class="botoes-modal">
       <button type="button" class="cancelar" @click="fecharModalDetalhes">Fechar</button>
     </div>
@@ -191,7 +209,7 @@ const pacienteDetalhes = ref(null)
 
 const abrirModalDetalhes = async (paciente) => {
   try {
-    const response = await api.get(`/api/pacientes/${paciente.id}`)
+    const response = await api.get(`/api/pacientes/${paciente.id}/historico`)
     pacienteDetalhes.value = response.data
   } catch (erro) {
     console.error('Erro ao buscar detalhes do paciente:', erro.response?.data || erro)
@@ -531,7 +549,9 @@ main {
   background: #fff;
   padding: 25px;
   border-radius: 12px;
-  width: 400px;
+  width: 440px;
+  max-height: 85vh;
+  overflow-y: auto;
   box-shadow: 0 8px 20px rgba(0,0,0,0.15); /* sombra suave */
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   color: #333;
@@ -599,6 +619,79 @@ main {
   border-radius: 8px;
   border: none;
   cursor: pointer;
+}
+
+.historico-titulo {
+  margin: 18px 0 8px;
+  font-size: 15px;
+  font-weight: 600;
+  color: #2c3e50;
+  border-top: 1px solid #f0f0f0;
+  padding-top: 14px;
+}
+
+.historico-vazio {
+  font-size: 13px;
+  color: #888;
+}
+
+.historico-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.historico-item {
+  background: #f9fafb;
+  border: 1px solid #eee;
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 13px;
+}
+
+.historico-item-topo {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.historico-data {
+  font-weight: 600;
+  color: #333;
+}
+
+.historico-status {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: capitalize;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #e5e7eb;
+  color: #444;
+}
+
+.status-realizada { background: #d1fae5; color: #065f46; }
+.status-confirmada { background: #dbeafe; color: #1e40af; }
+.status-agendada { background: #fef3c7; color: #92400e; }
+.status-cancelada { background: #fee2e2; color: #991b1b; }
+.status-faltou { background: #ede9fe; color: #5b21b6; }
+.status-em_atendimento { background: #cffafe; color: #155e75; }
+
+.historico-motivo {
+  color: #555;
+  margin: 4px 0;
+}
+
+.historico-atendimento {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px dashed #e0e0e0;
+}
+
+.historico-atendimento p {
+  margin: 3px 0;
+  font-size: 12.5px;
 }
 
 .voltar {

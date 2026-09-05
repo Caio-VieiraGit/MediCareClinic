@@ -96,6 +96,16 @@ exports.criar = async (req, res) => {
       return res.status(400).json({ erro: 'Já existe um atendimento para esta consulta.' })
     }
 
+    // RN08: apenas o médico responsável pela consulta pode registrar o atendimento
+    if (consulta.medicoId !== req.user.id) {
+      return res.status(403).json({ erro: 'Apenas o médico responsável por esta consulta pode registrar o atendimento.' })
+    }
+
+    // RN12: atendimento só pode ser registrado com a consulta em_atendimento ou já realizada
+    if (!['em_atendimento', 'realizada'].includes(consulta.status)) {
+      return res.status(400).json({ erro: 'A consulta precisa estar em atendimento (ou já realizada) para registrar o atendimento.' })
+    }
+
     // 3. Define o médico responsável
     const medicoId = req.user ? req.user.id : consulta.medicoId
     if (!medicoId) {

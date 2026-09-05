@@ -31,7 +31,11 @@ exports.buscarHistorico = async (req, res) => {
 exports.criar = async (req, res) => {
   try {
     console.log('Payload recebido:', req.body)
-    const novo = await Paciente.create(req.body) // usa direto o body
+    const novo = await Paciente.create({
+      ...req.body,
+      createdBy: req.user.id,
+      updatedBy: req.user.id,
+    })
     res.status(201).json(novo)
   } catch (error) {
     console.error('Erro ao criar paciente:', error)
@@ -43,7 +47,7 @@ exports.criar = async (req, res) => {
 exports.atualizar = async (req, res) => {
   const paciente = await Paciente.findByPk(req.params.id)
   if (!paciente) return res.status(404).json({ erro: 'Paciente não encontrado!' })
-  await paciente.update(req.body)
+  await paciente.update({ ...req.body, updatedBy: req.user.id })
   res.json(paciente)
 }
 
