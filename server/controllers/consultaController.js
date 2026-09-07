@@ -42,6 +42,48 @@ async function existeConsultaDuplicadaNoDia({ pacienteId, medicoId, data_consult
   return !!existente
 }
 
+// RN11 + fluxo do documento: transições de status permitidas.
+// Um status ausente do mapa (realizada, cancelada, faltou) é terminal —
+// nenhuma transição a partir dele é permitida.
+const TRANSICOES_VALIDAS = {
+  agendada: ['confirmada', 'em_atendimento', 'cancelada', 'faltou'],
+  confirmada: ['em_atendimento', 'cancelada', 'faltou'],
+  em_atendimento: ['realizada', 'cancelada'],
+}
+
+function transicaoPermitida(statusAtual, novoStatus) {
+  if (statusAtual === novoStatus) return true // no-op, não é uma transição de fato
+  return (TRANSICOES_VALIDAS[statusAtual] || []).includes(novoStatus)
+}
+
+const DIAS_SEMANA = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sab']
+
+// RN05: a consulta deve respeitar o dia/horário de atendimento do médico.
+// Se o médico não tiver disponibilidade configurada (horario_inicio/fim),
+// não bloqueia — mantém retrocompatibilidade com cadastros antigos.
+async function validarDisponibilidadeMedico({ medicoId, data_consulta, hora_consulta }) {
+  const medico = await Profissional.findByPk(medicoId)
+  if (!medico) return { ok: false, erro: 'Médico não encontrado.' }
+  if (!medico.horario_inicio || !medico.horario_fim) return { ok: true }
+
+  const diaSemana = DIAS_SEMANA[new Date(`${data_consulta}T00:00:00`).getDay()]
+  if (medico.dias_disponiveis) {
+    const dias = medico.dias_disponiveis.split(',').map((d) => d.trim())
+    if (!dias.includes(diaSemana)) {
+      return { ok: false, erro: `O médico não atende nesse dia da semana (${diaSemana}).` }
+    }
+  }
+
+  const [hi, mi] = medico.horario_inicio.split(':').map(Number)
+  const [hf, mf] = medico.horario_fim.split(':').map(Number)
+  const [h, m] = hora_consulta.split(':').map(Number)
+  const minutosSolicitado = h * 60 + m
+  if (minutosSolicitado < hi * 60 + mi || minutosSolicitado >= hf * 60 + mf) {
+    return { ok: false, erro: `Fora do horário de atendimento do médico (${medico.horario_inicio} às ${medico.horario_fim}).` }
+  }
+  return { ok: true }
+}
+
 
 //GET /consultas
 exports.listar = async (req, res) => {
@@ -124,6 +166,11 @@ exports.criar = async (req, res) => {
   try {
     const { pacienteId, medicoId, data_consulta, hora_consulta, tipo, motivo } = req.body;
 
+    const disponibilidade = await validarDisponibilidadeMedico({ medicoId, data_consulta, hora_consulta });
+    if (!disponibilidade.ok) {
+      return res.status(400).json({ erro: disponibilidade.erro });
+    }
+
     if (await existeConflitoHorario({ medicoId, data_consulta, hora_consulta })) {
       return res.status(400).json({ erro: 'Horário indisponível para este médico (intervalo mínimo de 30 minutos entre consultas).' });
     }
@@ -164,17 +211,41 @@ exports.atualizar = async (req, res) => {
 
         const { pacienteId, medicoId, data_consulta, hora_consulta, tipo, motivo, observacoes } = req.body;
 
-        // Se mudou médico/data/hora, revalida conflito (RN06) e duplicidade (RN09)
-        if (medicoId && data_consulta && hora_consulta) {
-            if (await existeConflitoHorario({ medicoId, data_consulta, hora_consulta, ignorarId: consulta.id })) {
+        // Valores efetivos: o que veio no PATCH, com fallback pro que já está salvo —
+        // assim a validação roda mesmo quando só um dos três campos muda (ex.: só a hora).
+        const efetivo = {
+            pacienteId: pacienteId ?? consulta.pacienteId,
+            medicoId: medicoId ?? consulta.medicoId,
+            data_consulta: data_consulta ?? consulta.data_consulta,
+            hora_consulta: hora_consulta ?? consulta.hora_consulta,
+        }
+
+        const mudouHorarioOuMedico =
+            (medicoId && medicoId !== consulta.medicoId) ||
+            (data_consulta && data_consulta !== consulta.data_consulta) ||
+            (hora_consulta && hora_consulta !== consulta.hora_consulta)
+
+        if (mudouHorarioOuMedico) {
+            const disponibilidade = await validarDisponibilidadeMedico(efetivo);
+            if (!disponibilidade.ok) {
+                return res.status(400).json({ erro: disponibilidade.erro });
+            }
+            if (await existeConflitoHorario({ ...efetivo, ignorarId: consulta.id })) {
                 return res.status(400).json({ erro: 'Horário indisponível para este médico (intervalo mínimo de 30 minutos entre consultas).' });
             }
-            if (await existeConsultaDuplicadaNoDia({ pacienteId: pacienteId || consulta.pacienteId, medicoId, data_consulta, ignorarId: consulta.id })) {
+            if (await existeConsultaDuplicadaNoDia({ ...efetivo, ignorarId: consulta.id })) {
                 return res.status(400).json({ erro: 'Este paciente já tem uma consulta agendada com este médico neste dia.' });
             }
         }
 
-        await consulta.update({ pacienteId, medicoId, data_consulta, hora_consulta, tipo, motivo, observacoes });
+        // Só aplica os campos realmente enviados — um PATCH parcial não deve
+        // apagar os demais campos da consulta.
+        const dadosParaAtualizar = { updatedBy: req.user.id };
+        for (const [chave, valor] of Object.entries({ pacienteId, medicoId, data_consulta, hora_consulta, tipo, motivo, observacoes })) {
+            if (valor !== undefined) dadosParaAtualizar[chave] = valor;
+        }
+
+        await consulta.update(dadosParaAtualizar);
         res.json(consulta);
     } catch (error) {
         res.status(500).json({ erro: 'Erro ao atualizar consulta.', detalhe: error.message });
@@ -189,15 +260,38 @@ exports.atualizarStatus = async (req, res) => {
 
         if(!consulta) return res.status(404).json({erro: 'Consulta não encontrada.'});
 
-        // RN11: consulta já realizada não pode ser editada (nem trocar de status)
-        if (consulta.status === 'realizada') {
-            return res.status(400).json({ erro: 'Consulta já realizada não pode ser editada.' });
+        if (!transicaoPermitida(consulta.status, status)) {
+            return res.status(400).json({
+                erro: `Não é possível mudar o status de "${consulta.status}" para "${status}".`
+            });
         }
 
-        await consulta.update({ status });
+        const dadosExtra = { status, updatedBy: req.user.id };
+        if (status === 'confirmada') dadosExtra.data_confirmacao = new Date();
+
+        await consulta.update(dadosExtra);
         res.json(consulta);
     } catch (error) {
         res.status(500).json({erro: 'Erro ao atualizar status.'})
+    }
+}
+
+// PATCH /consultas/:id/confirmar — alias dedicado (RF09 / rota citada no documento)
+exports.confirmar = async (req, res) => {
+    try {
+        const consulta = await Consulta.findByPk(req.params.id);
+        if (!consulta) return res.status(404).json({ erro: 'Consulta não encontrada.' });
+
+        if (!transicaoPermitida(consulta.status, 'confirmada')) {
+            return res.status(400).json({
+                erro: `Não é possível confirmar uma consulta com status "${consulta.status}".`
+            });
+        }
+
+        await consulta.update({ status: 'confirmada', data_confirmacao: new Date(), updatedBy: req.user.id });
+        res.json(consulta);
+    } catch (error) {
+        res.status(500).json({ erro: 'Erro ao confirmar consulta.' });
     }
 }
 
@@ -209,6 +303,10 @@ exports.cancelar = async (req, res) => {
 
     if (!consulta) return res.status(404).json({ erro: 'Consulta não encontrada.' });
 
+    if (!transicaoPermitida(consulta.status, 'cancelada')) {
+      return res.status(400).json({ erro: `Não é possível cancelar uma consulta com status "${consulta.status}".` });
+    }
+
     // RN07: cancelamento só é permitido com no mínimo 4h de antecedência
     const dataHoraConsulta = combinarDataHora(consulta.data_consulta, consulta.hora_consulta);
     const horasRestantes = (dataHoraConsulta - new Date()) / (1000 * 60 * 60);
@@ -219,7 +317,8 @@ exports.cancelar = async (req, res) => {
     await consulta.update({
       status: 'cancelada',
       motivo_cancelamento,
-      data_cancelamento: new Date()
+      data_cancelamento: new Date(),
+      updatedBy: req.user.id
     });
     res.json({ mensagem: 'Consulta cancelada com sucesso.' });
   } catch (error) {
@@ -227,13 +326,56 @@ exports.cancelar = async (req, res) => {
   }
 }
 
-// DELETE /consultas/:id
+// GET /api/agenda — visão geral da agenda do dia (todas as consultas de uma data)
+exports.agendaDoDia = async (req, res) => {
+  try {
+    const data = req.query.data || new Date().toISOString().split('T')[0];
+    const consultas = await Consulta.findAll({
+      where: { data_consulta: data },
+      include: [
+        { model: Paciente, as: 'paciente', attributes: ['id', 'nome', 'cpf'] },
+        { model: Profissional, as: 'medico', attributes: ['id', 'nome', 'especialidade'] },
+      ],
+      order: [['hora_consulta', 'ASC']],
+    });
+    res.json({ data, consultas });
+  } catch (error) {
+    res.status(500).json({ erro: 'Erro ao buscar agenda do dia.' });
+  }
+};
+
+// GET /api/medicos/:id/consultas — consultas de um médico específico
+exports.consultasPorMedico = async (req, res) => {
+  try {
+    const { data, status } = req.query;
+    const where = { medicoId: req.params.id };
+    if (data) where.data_consulta = data;
+    if (status) where.status = status;
+
+    const consultas = await Consulta.findAll({
+      where,
+      include: [{ model: Paciente, as: 'paciente', attributes: ['id', 'nome', 'cpf'] }],
+      order: [['data_consulta', 'ASC'], ['hora_consulta', 'ASC']],
+    });
+    res.json(consultas);
+  } catch (error) {
+    res.status(500).json({ erro: 'Erro ao buscar consultas do médico.' });
+  }
+};
 exports.excluir = async (req, res) => {
   try {
     const consulta = await Consulta.findByPk(req.params.id);
 
     if (!consulta) {
       return res.status(404).json({ erro: 'Consulta não encontrada.' });
+    }
+
+    // Preserva o histórico clínico: uma consulta já realizada não pode ser
+    // apagada (ela deve ficar visível no prontuário do paciente). Para os
+    // demais status, a exclusão definitiva continua permitida (ex.: engano
+    // no agendamento).
+    if (consulta.status === 'realizada') {
+      return res.status(400).json({ erro: 'Consulta já realizada não pode ser excluída — cancele-a caso precise removê-la da agenda ativa.' });
     }
 
     await consulta.destroy();   // remove do banco

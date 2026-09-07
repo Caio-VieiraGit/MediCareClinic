@@ -41,6 +41,9 @@ async function seed() {
       especialidade: 'Cardiologia',
       perfil: 'medico',
       status: true,
+      dias_disponiveis: 'seg,ter,qua,qui,sex,sab',
+      horario_inicio: '08:00',
+      horario_fim: '18:00',
     }),
     Profissional.create({
       nome: 'Dra. Ana Santos',
@@ -50,6 +53,9 @@ async function seed() {
       especialidade: 'Pediatria',
       perfil: 'medico',
       status: true,
+      dias_disponiveis: 'seg,qua,sex',
+      horario_inicio: '09:00',
+      horario_fim: '17:00',
     }),
     Profissional.create({
       nome: 'Recepcionista',

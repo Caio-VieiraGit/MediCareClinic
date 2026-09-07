@@ -84,7 +84,7 @@ exports.atendimentosPorPeriodo = async (req, res) => {
       where,
       include: [
         {
-          model: Consulta,
+          model: Consulta, as: 'consulta',
           include: [
             { model: Paciente, as: 'paciente', attributes: ['id', 'nome'] },
           ],

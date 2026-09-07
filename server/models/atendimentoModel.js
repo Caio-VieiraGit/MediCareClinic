@@ -47,6 +47,15 @@ const Atendimento = sequelize.define('Atendimento', {
     type: DataTypes.DATE,
     allowNull: false,
   },
+  // RF13: auditoria
+  createdBy: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+  },
+  updatedBy: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+  },
 })
 
 module.exports = Atendimento

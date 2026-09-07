@@ -12,7 +12,7 @@ Profissional.hasMany(Consulta, { foreignKey: 'medicoId' })
 Consulta.belongsTo(Profissional, { as: 'medico', foreignKey: 'medicoId' })
 
 Consulta.hasOne(Atendimento, { foreignKey: 'consultaId' })
-Atendimento.belongsTo(Consulta, { foreignKey: 'consultaId' })
+Atendimento.belongsTo(Consulta, { as: 'consulta', foreignKey: 'consultaId' })
 
 Profissional.hasMany(Atendimento, { foreignKey: 'medicoId' })
 Atendimento.belongsTo(Profissional, { as: 'medico', foreignKey: 'medicoId' })

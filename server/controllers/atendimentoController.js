@@ -1,19 +1,21 @@
 // atendimentoController.js
 const { Atendimento, Consulta, Paciente, Profissional } = require('../models');
 
-// GET /api/atendimentos
+// GET /api/atendimentos — médico vê os seus; admin vê todos
 exports.listar = async (req, res) => {
   try {
-   const atendimentos = await Atendimento.findAll({
-  where: { medicoId: req.user.id },
-  include: [{
-    model: Consulta,
-    include: [
-      { model: Paciente, as: 'paciente' },
-      { model: Profissional, as: 'medico' }
-    ]
-  }]
-})
+    const where = req.user.perfil === 'medico' ? { medicoId: req.user.id } : {};
+    const atendimentos = await Atendimento.findAll({
+      where,
+      include: [{
+        model: Consulta, as: 'consulta',
+        include: [
+          { model: Paciente, as: 'paciente' },
+          { model: Profissional, as: 'medico' }
+        ]
+      }],
+      order: [['data_atendimento', 'DESC']],
+    })
     res.json(atendimentos);
   } catch (err) {
     res.status(500).json({ erro: 'Erro ao listar atendimentos.' });
@@ -30,14 +32,13 @@ exports.consultasPendentes = async (req, res) => {
         { model: Paciente, as: 'paciente' },
         { model: Profissional, as: 'medico' },
         { model: Profissional, as: 'recepcionista' },
-        { model: Atendimento } // ✅ agora definido
+        { model: Atendimento }
       ]
     })
 
     const pendentes = consultas.filter(c => !c.Atendimento)
     res.json(pendentes)
   } catch (err) {
-    console.error('Erro interno em consultasPendentes:', err)
     res.status(500).json({ erro: 'Erro ao buscar consultas pendentes.' })
   }
 }
@@ -47,8 +48,11 @@ exports.buscarPorId = async (req, res) => {
   try {
     const atendimento = await Atendimento.findByPk(req.params.id, {
       include: [{
-        model: Consulta,
-        include: [Paciente, Profissional]
+        model: Consulta, as: 'consulta',
+        include: [
+          { model: Paciente, as: 'paciente' },
+          { model: Profissional, as: 'medico' }
+        ]
       }]
     });
     if (!atendimento) return res.status(404).json({ erro: 'Atendimento não encontrado.' });
@@ -59,7 +63,6 @@ exports.buscarPorId = async (req, res) => {
 };
 
 // GET /api/consultas/:id/atendimento
-
 exports.buscarPorConsulta = async (req, res) => {
   try {
     const atendimento = await Atendimento.findOne({
@@ -72,6 +75,7 @@ exports.buscarPorConsulta = async (req, res) => {
   }
 };
 
+// POST /api/atendimentos
 exports.criar = async (req, res) => {
   try {
     const {
@@ -84,13 +88,15 @@ exports.criar = async (req, res) => {
       retorno_dias
     } = req.body
 
-    // 1. Verifica se a consulta existe
+    if (!diagnostico || !diagnostico.trim()) {
+      return res.status(400).json({ erro: 'O diagnóstico é obrigatório para registrar o atendimento.' })
+    }
+
     const consulta = await Consulta.findByPk(consultaId)
     if (!consulta) {
       return res.status(404).json({ erro: 'Consulta não encontrada.' })
     }
 
-    // 2. Verifica se já existe atendimento para essa consulta
     const atendimentoExistente = await Atendimento.findOne({ where: { consultaId } })
     if (atendimentoExistente) {
       return res.status(400).json({ erro: 'Já existe um atendimento para esta consulta.' })
@@ -106,31 +112,26 @@ exports.criar = async (req, res) => {
       return res.status(400).json({ erro: 'A consulta precisa estar em atendimento (ou já realizada) para registrar o atendimento.' })
     }
 
-    // 3. Define o médico responsável
-    const medicoId = req.user ? req.user.id : consulta.medicoId
-    if (!medicoId) {
-      return res.status(400).json({ erro: 'Não foi possível determinar o médico responsável.' })
-    }
-
-    // 4. Cria o atendimento
     const atendimento = await Atendimento.create({
       consultaId,
-      medicoId,
+      medicoId: req.user.id,
       data_atendimento: new Date(),
       anamnese,
       diagnostico,
       prescricao,
       observacoes,
       exames_solicitados,
-      retorno_dias
+      retorno_dias,
+      createdBy: req.user.id,
+      updatedBy: req.user.id,
     })
 
-    // 5. Atualiza status da consulta
-    await consulta.update({ status: 'realizada' })
+    if (consulta.status !== 'realizada') {
+      await consulta.update({ status: 'realizada', updatedBy: req.user.id })
+    }
 
     res.status(201).json(atendimento)
   } catch (error) {
-    console.error('Erro ao criar atendimento:', error)
     res.status(500).json({
       erro: 'Erro ao criar atendimento.',
       detalhe: error.message
@@ -138,23 +139,19 @@ exports.criar = async (req, res) => {
   }
 }
 
-
-// PUT /api/atendimentos/:id 
+// PUT /api/atendimentos/:id
 exports.atualizar = async (req, res) => {
   try {
     const atendimento = await Atendimento.findByPk(req.params.id);
     if (!atendimento) return res.status(404).json({ erro: 'Atendimento não encontrado.' });
 
+    // RN08 (por extensão): só quem registrou o atendimento pode editá-lo
     if (atendimento.medicoId !== req.user.id) {
       return res.status(403).json({ erro: 'Você não pode editar este atendimento.' });
     }
 
-    const consulta = await Consulta.findByPk(atendimento.consultaId);
-    
-    // ✅ REMOVIDO: A regra de não poder editar atendimento consolidado é complexa e
-    // foi simplificada. O foco aqui é corrigir o fluxo básico.
-
-    await atendimento.update(req.body);
+    const { consultaId, medicoId, createdBy, ...camposEditaveis } = req.body;
+    await atendimento.update({ ...camposEditaveis, updatedBy: req.user.id });
     res.json(atendimento);
   } catch (err) {
     res.status(500).json({ erro: 'Erro ao atualizar atendimento.' });
@@ -169,31 +166,22 @@ exports.deletar = async (req, res) => {
       return res.status(404).json({ erro: 'Atendimento não encontrado.' })
     }
 
-    // Só o médico que registrou pode excluir
     if (atendimento.medicoId !== req.user.id) {
       return res.status(403).json({ erro: 'Você não pode excluir este atendimento.' })
     }
 
-    // Busca a consulta vinculada
     const consulta = await Consulta.findByPk(atendimento.consultaId)
 
-    // Regra de negócio: consulta realizada não pode ser editada (RN11).
-    // Se você quiser permitir exclusão apenas de atendimentos em andamento:
-    if (consulta.status === 'realizada') {
-      return res.status(400).json({ erro: 'Não é possível excluir atendimento já finalizado.' })
-    }
-
-    // Exclui o atendimento
     await atendimento.destroy()
 
-    // Reverte status da consulta para anterior (ex.: confirmada)
-    if (consulta) {
-      await consulta.update({ status: 'confirmada' })
+    // Reverte a consulta pro status anterior ao "realizada", já que o
+    // atendimento que a fechou deixou de existir.
+    if (consulta && consulta.status === 'realizada') {
+      await consulta.update({ status: 'em_atendimento', updatedBy: req.user.id })
     }
 
-    res.json({ sucesso: true, mensagem: 'Atendimento excluído e consulta revertida.' })
+    res.json({ mensagem: 'Atendimento excluído e consulta revertida para em_atendimento.' })
   } catch (err) {
-    console.error(err)
     res.status(500).json({ erro: 'Erro ao excluir atendimento.' })
   }
 }

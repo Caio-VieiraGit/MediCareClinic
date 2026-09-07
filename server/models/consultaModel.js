@@ -78,6 +78,11 @@ const Consulta = sequelize.define('Consulta', {
       key: 'id',
     },
   },
+  // RF13: auditoria — quem foi o último a alterar (status, cancelamento, edição)
+  updatedBy: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+  },
 })
 
 module.exports = Consulta
