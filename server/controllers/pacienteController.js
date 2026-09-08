@@ -1,4 +1,5 @@
 const { Paciente, Consulta, Atendimento } = require('../models')
+const { registrarAuditoria } = require('../helpers/auditoria')
 
 // GET /pacientes — por padrão só lista os ativos (soft-delete)
 exports.listar = async (req, res) => {
@@ -61,6 +62,13 @@ exports.criar = async (req, res) => {
       updatedBy: req.user.id,
     })
     res.status(201).json(novo)
+
+    registrarAuditoria({
+      usuarioId: req.user.id,
+      acao: 'CREATE',
+      entidade: 'Paciente',
+      entidadeId: novo.id,
+    })
   } catch (error) {
     res.status(500).json({ erro: 'Erro ao criar paciente.', detalhe: error.message })
   }
@@ -73,6 +81,14 @@ exports.atualizar = async (req, res) => {
     if (!paciente) return res.status(404).json({ erro: 'Paciente não encontrado!' })
     await paciente.update({ ...req.body, updatedBy: req.user.id })
     res.json(paciente)
+
+    registrarAuditoria({
+      usuarioId: req.user.id,
+      acao: 'UPDATE',
+      entidade: 'Paciente',
+      entidadeId: paciente.id,
+      detalhes: { camposAlterados: Object.keys(req.body) },
+    })
   } catch (error) {
     res.status(500).json({ erro: 'Erro ao atualizar paciente.', detalhe: error.message })
   }
@@ -86,6 +102,14 @@ exports.deletar = async (req, res) => {
     if (!paciente) return res.status(404).json({ erro: 'Paciente não encontrado!' })
     await paciente.update({ ativo: false, updatedBy: req.user.id })
     res.json({ mensagem: 'Paciente desativado com sucesso.' })
+
+    registrarAuditoria({
+      usuarioId: req.user.id,
+      acao: 'DELETE',
+      entidade: 'Paciente',
+      entidadeId: paciente.id,
+      detalhes: { tipo: 'desativação (soft delete)' },
+    })
   } catch (error) {
     res.status(500).json({ erro: 'Erro ao desativar paciente.' })
   }

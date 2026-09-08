@@ -1,5 +1,6 @@
 // atendimentoController.js
 const { Atendimento, Consulta, Paciente, Profissional } = require('../models');
+const { registrarAuditoria } = require('../helpers/auditoria')
 
 // GET /api/atendimentos — médico vê os seus; admin vê todos
 exports.listar = async (req, res) => {
@@ -56,6 +57,11 @@ exports.buscarPorId = async (req, res) => {
       }]
     });
     if (!atendimento) return res.status(404).json({ erro: 'Atendimento não encontrado.' });
+
+    if (req.user.perfil === 'medico' && atendimento.medicoId !== req.user.id) {
+      return res.status(403).json({ erro: 'Você não tem permissão para visualizar este atendimento.' });
+    }
+
     res.json(atendimento);
   } catch (err) {
     res.status(500).json({ erro: 'Erro ao buscar atendimento.' });
@@ -65,6 +71,13 @@ exports.buscarPorId = async (req, res) => {
 // GET /api/consultas/:id/atendimento
 exports.buscarPorConsulta = async (req, res) => {
   try {
+    const consulta = await Consulta.findByPk(req.params.id);
+    if (!consulta) return res.status(404).json({ erro: 'Consulta não encontrada.' });
+
+    if (req.user.perfil === 'medico' && consulta.medicoId !== req.user.id) {
+      return res.status(403).json({ erro: 'Você não tem permissão para visualizar o atendimento desta consulta.' });
+    }
+
     const atendimento = await Atendimento.findOne({
       where: { consultaId: req.params.id }
     });
@@ -131,6 +144,14 @@ exports.criar = async (req, res) => {
     }
 
     res.status(201).json(atendimento)
+
+    registrarAuditoria({
+      usuarioId: req.user.id,
+      acao: 'CREATE',
+      entidade: 'Atendimento',
+      entidadeId: atendimento.id,
+      detalhes: { consultaId },
+    })
   } catch (error) {
     res.status(500).json({
       erro: 'Erro ao criar atendimento.',
@@ -153,6 +174,14 @@ exports.atualizar = async (req, res) => {
     const { consultaId, medicoId, createdBy, ...camposEditaveis } = req.body;
     await atendimento.update({ ...camposEditaveis, updatedBy: req.user.id });
     res.json(atendimento);
+
+    registrarAuditoria({
+      usuarioId: req.user.id,
+      acao: 'UPDATE',
+      entidade: 'Atendimento',
+      entidadeId: atendimento.id,
+      detalhes: { camposAlterados: Object.keys(camposEditaveis) },
+    })
   } catch (err) {
     res.status(500).json({ erro: 'Erro ao atualizar atendimento.' });
   }
@@ -181,6 +210,14 @@ exports.deletar = async (req, res) => {
     }
 
     res.json({ mensagem: 'Atendimento excluído e consulta revertida para em_atendimento.' })
+
+    registrarAuditoria({
+      usuarioId: req.user.id,
+      acao: 'DELETE',
+      entidade: 'Atendimento',
+      entidadeId: atendimento.id,
+      detalhes: { consultaId: atendimento.consultaId },
+    })
   } catch (err) {
     res.status(500).json({ erro: 'Erro ao excluir atendimento.' })
   }

@@ -44,9 +44,42 @@ const routes = [
     component: Consultas,
     meta: {requiresAuth: true}
   },
+  // Reaproveitam o Consultas.vue existente — a view lê o :id/rota pra abrir
+  // o modal de nova consulta ou selecionar a consulta certa automaticamente.
+  {
+    path: '/consultas/novo',
+    name: 'ConsultaNova',
+    component: Consultas,
+    meta: {requiresAuth: true}
+  },
+  {
+    path: '/consultas/:id',
+    name: 'ConsultaDetalhe',
+    component: Consultas,
+    meta: {requiresAuth: true}
+  },
+  {
+    path: '/consultas/:id/atendimento',
+    name: 'ConsultaAtendimento',
+    component: Atendimento,
+    meta: {requiresAuth: true}
+  },
   {
     path: '/pacientes',
     name: 'Pacientes',
+    component: Pacientes,
+    meta: {requiresAuth: true}
+  },
+  // Idem: reaproveitam o Pacientes.vue existente
+  {
+    path: '/pacientes/novo',
+    name: 'PacienteNovo',
+    component: Pacientes,
+    meta: {requiresAuth: true}
+  },
+  {
+    path: '/pacientes/:id',
+    name: 'PacienteDetalhe',
     component: Pacientes,
     meta: {requiresAuth: true}
   },
@@ -60,7 +93,7 @@ const routes = [
     path: '/relatorios',
     name: 'Relatorios',
     component: Relatorios,
-    meta: {requiresAuth: true, requiresAdmin: true}
+    meta: {requiresAuth: true, allowedRoles: ['admin', 'medico']}
   }
 ]
 
@@ -90,6 +123,17 @@ router.beforeEach((to, from, next)=>{
 
   // 2. Rotas que exigem admin
   if (to.meta.requiresAdmin && perfil !== 'admin') {
+    if (!perfil) {
+      store.dispatch('auth/logout')
+      if (to.path !== '/login') {
+        return next('/login')
+      }
+    }
+    return next(perfilRoutes[perfil] || '/login')
+  }
+
+  // 2b. Rotas que exigem um perfil específico dentre uma lista (ex.: admin OU médico)
+  if (to.meta.allowedRoles && !to.meta.allowedRoles.includes(perfil)) {
     if (!perfil) {
       store.dispatch('auth/logout')
       if (to.path !== '/login') {

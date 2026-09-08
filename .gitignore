@@ -6,6 +6,9 @@
 *.log
 npm-debug.log*
 
+# Banco de dados SQLite — reconstruível via `npm run migrate` + `npm run seed`
+server/*.db
+
 # Node.js
 /node_modules
 pnpm-lock.yaml

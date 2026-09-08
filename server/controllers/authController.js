@@ -1,12 +1,12 @@
 const jwt = require('jsonwebtoken')
 const bcrypt = require('bcrypt')
 const { Profissional } = require('../models')
+const { registrarAuditoria } = require('../helpers/auditoria')
 
 const SALT_ROUNDS = 10; 
 
 // POST /api/auth/login
 exports.login = async (req, res) => {
-   console.log('Dados recebidos do Front-end:', req.body);
   try {
     const { email, senha } = req.body;
 
@@ -19,18 +19,11 @@ exports.login = async (req, res) => {
       return res.status(403).json({ erro: 'Usuário inativo.' });
     }
 
-      console.log('Senha recebida do Postman:', senha);
-    console.log('Hash do banco de dados:', profissional.senha);
-
     const senhaValida = await bcrypt.compare(senha, profissional.senha);
-
-      console.log('Resultado da comparação (senhaValida):', senhaValida);
 
     if (!senhaValida) {
       return res.status(401).json({ erro: 'Credenciais inválidas.' });
     }
-
-    console.log('JWT Secret value:', process.env.JWT_SECRET);
 
     const token = jwt.sign(
       {
@@ -53,6 +46,14 @@ exports.login = async (req, res) => {
     status: profissional.status
   }
      });
+
+    registrarAuditoria({
+      usuarioId: profissional.id,
+      acao: 'LOGIN',
+      entidade: 'Profissional',
+      entidadeId: profissional.id,
+      detalhes: { email: profissional.email },
+    })
   } catch (err) {
     console.error(err);
     res.status(500).json({ erro: 'Erro no login.' });

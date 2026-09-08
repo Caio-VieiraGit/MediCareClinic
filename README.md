@@ -1,319 +1,128 @@
 # MedicareClinic 🏥
 
-O **MediCare Clinic** é um sistema de gestão para clínicas médicas, desenvolvido para facilitar o gerenciamento de pacientes, consultas, profissionais e atendimentos.
+O MedicareClinic é um sistema de gestão para clínicas médicas, permitindo:
 
-O sistema permite:
+Cadastro e gerenciamento de pacientes 👩‍⚕️
 
-* Cadastro e gerenciamento de pacientes 👩‍⚕️
-* Agendamento de consultas 📅
-* Controle de médicos e especialidades 🩺
-* Painel administrativo para acompanhamento de atendimentos 📊
-* Registro de atendimentos médicos
-* Autenticação e controle de acesso
+Agendamento de consultas 📅
 
-O projeto possui **frontend desenvolvido em Vue 3 + Vite** e **backend em Node.js + Express**, utilizando SQLite como banco de dados.
+Controle de médicos e especialidades 🩺
 
----
+Painel administrativo para acompanhar atendimentos 📊
 
-## 🔄 Sobre esta versão
+Este projeto possui frontend em Vue 3 + Vite e backend em Node.js/Express.
 
-Este repositório é uma **remodelação e continuidade de um projeto originalmente desenvolvido em equipe**.
+🚀 Tecnologias Utilizadas
+Frontend: Vue 3, Vite, Axios
 
-A versão inicial do MediCare Clinic foi desenvolvida em conjunto por:
+Backend: Node.js, Express, SQLite
 
-* **Thiago da Silva**
-* **Caio Vieira Santos**
-* **Andrei Silva**
-
-O projeto original pode ser acessado no repositório da equipe:
-
-🔗 **[Repositório original — MediCareClinic](https://github.com/thigadasilva/MedicareClinic)**
-
-Após o desenvolvimento da versão original, **Caio Vieira Santos** deu continuidade ao projeto individualmente, utilizando a aplicação desenvolvida pela equipe como base para uma nova etapa de desenvolvimento.
-
-Nesta nova versão, o objetivo é **remodelar a aplicação, corrigir problemas identificados, aprimorar funcionalidades existentes e implementar novas funcionalidades**, além de utilizar o projeto como forma de aprofundar conhecimentos em desenvolvimento Full Stack.
-
-> **Os créditos da equipe original são mantidos**, uma vez que esta versão parte do trabalho desenvolvido originalmente em conjunto.
-
----
-
-## 🚀 Tecnologias Utilizadas
-
-### Frontend
-
-* Vue 3
-* Vite
-* Axios
-* Vue Router
-* Vuex
-* Vue Cal
-
-### Backend
-
-* Node.js
-* Express
-* Sequelize
-* SQLite
-* JWT
-* bcrypt
-* CORS
-* dotenv
-
-### Ferramentas
-
-* Git
-* GitHub
-* ESLint
-* Prettier
-* Visual Studio Code
-
----
+ESLint para padronização de código
 
 ## 📂 Estrutura do Projeto
 
-```text
+```plaintext
 MedicareClinic/
-├── src/                  # Código do frontend (Vue)
-│   ├── components/
-│   ├── services/
-│   ├── views/
-│   ├── router/
-│   └── store/
-│
-├── server/               # Código do backend (Node/Express)
-│   ├── controllers/
-│   ├── middlewares/
-│   ├── models/
-│   ├── routes/
-│   └── medicare.db
-│
-├── public/               # Arquivos estáticos
-├── index.html            # Entrada do frontend
-├── vite.config.js        # Configuração do Vite
-├── package.json          # Dependências e scripts
-├── package-lock.json
-├── .env.example          # Exemplo de variáveis de ambiente
-└── README.md
+├── src/              # Código do frontend (Vue)
+├── server/           # Código do backend (Node/Express)
+├── public/           # Arquivos estáticos
+├── index.html        # Entrada do frontend
+├── vite.config.js    # Configuração do Vite
+├── package.json      # Dependências e scripts
+└── .env.example      # Exemplo de variáveis de ambiente
 ```
 
----
 
-## ⚙️ Pré-requisitos
+⚙️ Pré-requisitos </br>
+Antes de rodar, instale:
 
-Antes de executar o projeto, certifique-se de ter instalado:
+Node.js (versão 18+)
 
-* **Node.js 18+**
-* **npm**
+npm ou yarn
 
-O banco de dados utilizado é o **SQLite**, já integrado ao projeto.
+Banco de dados SQLite (já integrado) ou MySQL (se configurado no backend)
 
----
+📥 Instalação
+Clone o repositório e instale as dependências:
 
-## 📥 Instalação
+## Clonar o repositório
+git clone https://github.com/thigadasilva/MedicareClinic.git
 
-### Clonar o repositório
+## Entrar na pasta
+cd MedicareClinic
 
-```bash
-git clone https://github.com/Caio-VieiraGit/MediCareClinic.git
-```
-
-### Entrar na pasta
-
-```bash
-cd MediCareClinic
-```
-
-### Instalar as dependências
-
-```bash
+## Instalar dependências
 npm install
-```
-
----
 
 ## ▶️ Executando o Projeto
+1. Configurar variáveis de ambiente
+Crie um arquivo .env na raiz do projeto baseado no .env.example. Exemplo:
 
-O projeto possui frontend e backend dentro do mesmo repositório e deve ser executado em **dois terminais**.
+env
+PORT=sua_porta
+DB_PATH=seu_database
+JWT_SECRET=senha_super_secreta
 
-### 1. Configurar as variáveis de ambiente
+2. Rodar o Backend
+Abra o terminal prompt de comando no Visual Studio Code
+Insira node server/app.js (ou `npm run server`)
+O backend será iniciado em http://localhost:3000
 
-Crie um arquivo `.env` na raiz do projeto utilizando o `.env.example` como referência.
+3. Popular o banco com dados de exemplo (opcional, mas recomendado)
+`npm run seed`
+Recria o banco do zero com profissionais, pacientes, consultas e um atendimento de exemplo
+(login de admin: admin@medicare.com / Admin@123 — demais credenciais na seção abaixo).
+⚠️ Isso apaga qualquer dado existente no banco.
 
-Exemplo:
+3b. Alternativa: Migrations (sem dados de exemplo)
+`npm run migrate` cria o schema do banco via Sequelize CLI, sem popular dados
+(`npm run migrate:undo` reverte). Use isso se quiser começar com o banco vazio;
+para os dados de exemplo, use `npm run seed` normalmente.
 
-```env
-PORT=3000
-DB_PATH=./server/medicare.db
-JWT_SECRET=medicare_secret_dev
-```
+📁 Sobre o banco (server/medicare.db)
+O arquivo .db não é versionado (está no .gitignore) — migrations + seed são
+suficientes para reconstruir o banco do zero a qualquer momento.
 
-> Em ambientes de produção, utilize uma chave JWT segura e mantenha o arquivo `.env` fora do controle de versão.
+4. Rodar o Frontend
+Em outro terminal:
 
----
+Abra o terminal prompt de comando no Visual Studio Code
+Insira npm run dev
+O frontend será iniciado em http://localhost:5173
 
-### 2. Rodar o Backend
+🔑 Funcionalidades Disponíveis
+Cadastro de pacientes: formulário para inserir dados pessoais
 
-Abra um terminal na pasta do projeto e execute:
+Agendamento de consultas: escolha de médico, especialidade e horário, com filtros por médico/status/data
 
-```bash
-node server/app.js
-```
+Listagem de médicos: painel administrativo para gerenciar profissionais
 
-O backend será iniciado em:
+Registro de atendimento: anamnese, diagnóstico, prescrição (médico responsável pela consulta)
 
-```text
-http://localhost:3000
-```
+Histórico do paciente: consultas e atendimentos anteriores
 
----
+Relatórios (admin): estatísticas gerais e pacientes mais frequentes
 
-### 3. Rodar o Frontend
+Dashboard: visão geral dos atendimentos e estatísticas
 
-Abra **outro terminal** na pasta do projeto e execute:
+Controle de acesso por perfil (admin / médico / recepcionista), aplicado no backend
 
-```bash
-npm run dev
-```
+Validação de entrada (express-validator) nos endpoints de criação/edição
 
-O frontend será iniciado pelo Vite, normalmente em:
+Dados clínicos (anamnese/diagnóstico/prescrição) visíveis só para admin/médico — recepcionista
+vê o histórico de consultas, não o conteúdo clínico
 
-```text
-http://localhost:5173
-```
+👤 Credenciais de exemplo (após rodar `npm run seed`)
+| Perfil | E-mail | Senha |
+|---|---|---|
+| Admin | admin@medicare.com | Admin@123 |
+| Médico | carlos@medicare.com | Med@123 |
+| Médico | ana@medicare.com | Med@123 |
+| Recepcionista | recepcao@medicare.com | Recep@123 |
 
----
-
-## 🔑 Funcionalidades Disponíveis
-
-### 👥 Pacientes
-
-* Cadastro de pacientes
-* Edição de informações
-* Consulta de dados
-* Exclusão
-* Histórico de consultas e atendimentos
-
-### 📅 Consultas
-
-* Agendamento de consultas
-* Seleção de paciente
-* Seleção de médico
-* Definição de data e horário
-* Tipos de consulta
-* Controle de status
-* Cancelamento de consultas
-* Filtros de consultas
-* Validação de conflitos de horário
-
-### 🩺 Médicos e profissionais
-
-* Cadastro de profissionais
-* Listagem de médicos
-* Gerenciamento de especialidades
-* CRM
-* Controle de perfis de acesso
-* Ativação e desativação de profissionais
-
-### 🏥 Atendimentos
-
-* Registro de atendimento médico
-* Anamnese
-* Diagnóstico
-* Prescrição
-* Observações
-* Histórico de atendimentos
-
-### 📊 Dashboard
-
-* Visão geral do sistema
-* Estatísticas
-* Consultas
-* Pacientes
-* Atendimentos
-
-### 📈 Relatórios
-
-* Estatísticas do sistema
-* Consultas por status
-* Pacientes frequentes
-* Informações relacionadas aos atendimentos
-
-### 🔐 Autenticação
-
-* Login
-* JWT
-* Controle de acesso por perfil
-* Proteção das rotas
-* Senhas protegidas com bcrypt
-
----
-
-## 🎯 Objetivo da Remodelação
-
-A continuidade deste projeto tem como objetivo transformar a aplicação original em uma versão mais completa e estruturada, explorando novas funcionalidades e aprimorando aspectos técnicos do sistema.
-
-Entre os objetivos estão:
-
-* Melhorar a organização do código;
-* Corrigir problemas encontrados na versão original;
-* Aprimorar as regras de negócio;
-* Melhorar a experiência do usuário;
-* Implementar novas funcionalidades;
-* Aprofundar conhecimentos em Vue.js e Node.js;
-* Trabalhar com autenticação e autorização;
-* Aprimorar conhecimentos em banco de dados e APIs REST;
-* Praticar manutenção e evolução de uma aplicação existente.
-
----
-
-## 👥 Créditos
-
-### Projeto Original
-
-**Equipe responsável pelo desenvolvimento original:**
-
-* **Thiago da Silva**
-* **Caio Vieira Santos**
-* **Andrei Silva**
-
-🔗 **Repositório original:**
-https://github.com/thigadasilva/MedicareClinic
-
-### Continuidade e Remodelação
-
-**Caio Vieira Santos**
-
-Responsável pela continuidade desta versão, incluindo remodelagem, correções, melhorias e implementação de novas funcionalidades a partir do projeto originalmente desenvolvido pela equipe.
-
----
-
-## 📌 Status do Projeto
-
-🚧 **Em desenvolvimento**
-
-Esta versão está passando por um processo de remodelação e evolução em relação ao projeto original.
-
-Novas funcionalidades, melhorias de interface, regras de negócio e aprimoramentos técnicos serão adicionados conforme o desenvolvimento avançar.
-
----
-
-## 📄 Contexto
-
-O MediCare Clinic foi originalmente desenvolvido como um projeto acadêmico para aplicação prática de conhecimentos em desenvolvimento de sistemas web.
-
-A continuidade do projeto também possui caráter educacional e de portfólio, permitindo explorar conceitos de:
-
-* Desenvolvimento Full Stack
-* Vue.js
-* Node.js
-* Express
-* APIs REST
-* Sequelize
-* SQLite
-* JWT
-* Autorização por perfil
-* Regras de negócio
-* UX/UI
-* Git e GitHub
-
----
+📌 Decisões de escopo
+Algumas páginas do documento de especificação (`/consultas/novo`, `/pacientes/:id`, `/profissionais`)
+foram implementadas como modais dentro de `/consultas` e `/pacientes`, em vez de rotas dedicadas —
+cobrem a mesma funcionalidade, mas com URL diferente da sugerida no documento.
+Cadastro de admin/recepcionista não tem tela própria (apenas médicos são cadastráveis pela UI);
+outros perfis são criados via seed ou diretamente pela API.

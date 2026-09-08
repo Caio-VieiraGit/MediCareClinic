@@ -1,5 +1,6 @@
 const { Consulta, Paciente, Profissional, Atendimento } = require('../models')
 const { Op } = require('sequelize');
+const { registrarAuditoria } = require('../helpers/auditoria')
 
 // Diferença em minutos entre dois horários "HH:mm" ou "HH:mm:ss"
 function minutosEntre(hora1, hora2) {
@@ -193,6 +194,14 @@ exports.criar = async (req, res) => {
   agendadoPor: req.user.id   // ✅ quem agendou
 })
     res.status(201).json(novaConsulta);
+
+    registrarAuditoria({
+      usuarioId: req.user.id,
+      acao: 'CREATE',
+      entidade: 'Consulta',
+      entidadeId: novaConsulta.id,
+      detalhes: { protocolo, status: 'agendada' },
+    })
   } catch (error) {
     res.status(500).json({ erro: 'Erro ao agendar consulta.', detalhe: error.message });
   }
@@ -247,6 +256,14 @@ exports.atualizar = async (req, res) => {
 
         await consulta.update(dadosParaAtualizar);
         res.json(consulta);
+
+        registrarAuditoria({
+            usuarioId: req.user.id,
+            acao: 'UPDATE',
+            entidade: 'Consulta',
+            entidadeId: consulta.id,
+            detalhes: { camposAlterados: Object.keys(dadosParaAtualizar).filter((c) => c !== 'updatedBy') },
+        })
     } catch (error) {
         res.status(500).json({ erro: 'Erro ao atualizar consulta.', detalhe: error.message });
     }
@@ -269,8 +286,17 @@ exports.atualizarStatus = async (req, res) => {
         const dadosExtra = { status, updatedBy: req.user.id };
         if (status === 'confirmada') dadosExtra.data_confirmacao = new Date();
 
+        const statusAnterior = consulta.status;
         await consulta.update(dadosExtra);
         res.json(consulta);
+
+        registrarAuditoria({
+            usuarioId: req.user.id,
+            acao: 'STATUS_CHANGE',
+            entidade: 'Consulta',
+            entidadeId: consulta.id,
+            detalhes: { de: statusAnterior, para: status },
+        })
     } catch (error) {
         res.status(500).json({erro: 'Erro ao atualizar status.'})
     }
@@ -290,6 +316,13 @@ exports.confirmar = async (req, res) => {
 
         await consulta.update({ status: 'confirmada', data_confirmacao: new Date(), updatedBy: req.user.id });
         res.json(consulta);
+
+        registrarAuditoria({
+            usuarioId: req.user.id,
+            acao: 'CONFIRM',
+            entidade: 'Consulta',
+            entidadeId: consulta.id,
+        })
     } catch (error) {
         res.status(500).json({ erro: 'Erro ao confirmar consulta.' });
     }
@@ -321,6 +354,14 @@ exports.cancelar = async (req, res) => {
       updatedBy: req.user.id
     });
     res.json({ mensagem: 'Consulta cancelada com sucesso.' });
+
+    registrarAuditoria({
+      usuarioId: req.user.id,
+      acao: 'CANCEL',
+      entidade: 'Consulta',
+      entidadeId: consulta.id,
+      detalhes: { motivo_cancelamento: motivo_cancelamento || null },
+    })
   } catch (error) {
     res.status(500).json({ erro: 'Erro ao cancelar consulta.', detalhe: error.message });
   }
@@ -380,6 +421,13 @@ exports.excluir = async (req, res) => {
 
     await consulta.destroy();   // remove do banco
     res.json({ mensagem: 'Consulta excluída com sucesso.' });
+
+    registrarAuditoria({
+      usuarioId: req.user.id,
+      acao: 'DELETE',
+      entidade: 'Consulta',
+      entidadeId: consulta.id,
+    })
   } catch (error) {
     res.status(500).json({ erro: 'Erro ao excluir consulta.', detalhe: error.message });
   }

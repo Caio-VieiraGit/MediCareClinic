@@ -8,6 +8,7 @@ const rotasProfissionais = require('./routes/profissionalRoutes')
 const rotasAtendimentos = require('./routes/atendimentoRoutes')
 const rotasRelatorios = require('./routes/relatorioRoutes')
 const authMiddleware = require('./middlewares/authMiddleware')
+const checkPerfil = require('./middlewares/checkPerfil')
 const profissionalController = require('./controllers/profissionalController')
 const consultaController = require('./controllers/consultaController')
 const atendimentoController = require('./controllers/atendimentoController')
@@ -42,7 +43,7 @@ app.get('/api/medicos', authMiddleware, profissionalController.listarMedicos)
 app.get('/api/medicos/:id/agenda', authMiddleware, profissionalController.disponibilidade)
 app.get('/api/medicos/:id/consultas', authMiddleware, consultaController.consultasPorMedico)
 app.get('/api/agenda', authMiddleware, consultaController.agendaDoDia)
-app.get('/api/consultas/:id/atendimento', authMiddleware, atendimentoController.buscarPorConsulta)
+app.get('/api/consultas/:id/atendimento', authMiddleware, checkPerfil('admin', 'medico'), atendimentoController.buscarPorConsulta)
 
 
 

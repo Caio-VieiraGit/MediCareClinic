@@ -2,6 +2,7 @@ const Profissional = require('../models/profissionalModel')
 const { Consulta } = require('../models')
 const { Op } = require('sequelize')
 const bcrypt = require('bcrypt')
+const { registrarAuditoria } = require('../helpers/auditoria')
 
 const SALT_ROUNDS = 10
 
@@ -119,6 +120,14 @@ exports.criar = async (req, res) => {
     })
     const { senha: _, ...semSenha } = novo.toJSON()
     res.status(201).json(semSenha)
+
+    registrarAuditoria({
+      usuarioId: req.user.id,
+      acao: 'CREATE',
+      entidade: 'Profissional',
+      entidadeId: novo.id,
+      detalhes: { perfil: novo.perfil },
+    })
   } catch (error) {
     res.status(500).json({ erro: 'Erro ao criar profissional.', detalhe: error.message })
   }
@@ -142,6 +151,14 @@ exports.atualizar = async (req, res) => {
     await profissional.update(dados)
     const { senha, ...semSenha } = profissional.toJSON()
     res.json(semSenha)
+
+    registrarAuditoria({
+      usuarioId: req.user.id,
+      acao: 'UPDATE',
+      entidade: 'Profissional',
+      entidadeId: profissional.id,
+      detalhes: { camposAlterados: Object.keys(req.body).filter((c) => c !== 'senha') },
+    })
   } catch (error) {
     res.status(500).json({ erro: 'Erro ao atualizar profissional.', detalhe: error.message })
   }
@@ -170,6 +187,14 @@ exports.deletar = async (req, res) => {
 
     await profissional.update({ status: false, updatedBy: req.user.id })
     res.json({ mensagem: 'Profissional desativado com sucesso.' })
+
+    registrarAuditoria({
+      usuarioId: req.user.id,
+      acao: 'DELETE',
+      entidade: 'Profissional',
+      entidadeId: profissional.id,
+      detalhes: { tipo: 'desativação (soft delete)' },
+    })
   } catch (error) {
     res.status(500).json({ erro: 'Erro ao desativar profissional.' })
   }
